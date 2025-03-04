@@ -1,0 +1,93 @@
+local Players = game:GetService("Players")
+local ChatService = game:GetService("TextChatService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Criando GUI móvel
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0.4, 0, 0.3, 0) -- Tamanho da caixa
+frame.Position = UDim2.new(0.3, 0, 0.1, 0) -- Posição inicial
+frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+frame.BackgroundTransparency = 0.3
+frame.Active = true
+frame.Draggable = true -- Permite arrastar
+frame.Parent = screenGui
+
+-- Título
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.15, 0)
+title.BackgroundTransparency = 1
+title.Text = "Chat Log 📜"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+title.Parent = frame
+
+-- Área de Mensagens (com rolagem)
+local messageBox = Instance.new("ScrollingFrame")
+messageBox.Size = UDim2.new(1, 0, 0.75, 0)
+messageBox.Position = UDim2.new(0, 0, 0.15, 0)
+messageBox.BackgroundTransparency = 0.5
+messageBox.ScrollBarThickness = 6
+messageBox.CanvasSize = UDim2.new(0, 0, 0, 0)
+messageBox.Parent = frame
+
+-- Lista de Mensagens
+local uiListLayout = Instance.new("UIListLayout")
+uiListLayout.Parent = messageBox
+
+-- Botão para Limpar
+local clearButton = Instance.new("TextButton")
+clearButton.Size = UDim2.new(1, 0, 0.1, 0)
+clearButton.Position = UDim2.new(0, 0, 0.9, 0)
+clearButton.Text = "🗑️ Limpar Mensagens"
+clearButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearButton.Font = Enum.Font.SourceSansBold
+clearButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+clearButton.Parent = frame
+
+-- Função para adicionar mensagens ao chat log
+local function addMessage(playerName, message)
+    local msgLabel = Instance.new("TextLabel")
+    msgLabel.Size = UDim2.new(1, 0, 0, 30)
+    msgLabel.Text = "[" .. playerName .. "]: " .. message
+    msgLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    msgLabel.Font = Enum.Font.SourceSans
+    msgLabel.TextScaled = true
+    msgLabel.BackgroundTransparency = 1
+    msgLabel.Parent = messageBox
+
+    -- Atualiza o tamanho da área de rolagem
+    messageBox.CanvasSize = UDim2.new(0, 0, 0, uiListLayout.AbsoluteContentSize.Y)
+
+    -- Faz a rolagem descer automaticamente para a última mensagem
+    messageBox.CanvasPosition = Vector2.new(0, messageBox.CanvasSize.Y.Offset)
+end
+
+-- Captura mensagens antes da censura (SOMENTE DO PRÓPRIO JOGADOR)
+LocalPlayer.Chatted:Connect(function(msg)
+    addMessage("VOCÊ (Sem filtro)", msg)
+end)
+
+-- Ouvindo o chat normalmente (pode conter mensagens censuradas de outros jogadores)
+if ChatService then
+    ChatService.MessageReceived:Connect(function(messageData)
+        if messageData.TextSource then
+            local player = messageData.TextSource
+            local playerName = player.Name
+            addMessage(playerName, messageData.Text)
+        end
+    end)
+end
+
+-- Limpar mensagens ao clicar no botão
+clearButton.MouseButton1Click:Connect(function()
+    for _, v in pairs(messageBox:GetChildren()) do
+        if v:IsA("TextLabel") then
+            v:Destroy()
+        end
+    end
+    messageBox.CanvasSize = UDim2.new(0, 0, 0, 0) -- Resetar tamanho da rolagem
+end)
